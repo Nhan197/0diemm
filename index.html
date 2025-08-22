@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Đề thi + Đồng hồ 80 phút + Phiếu trả lời</title>
+  <style>
+    :root {
+      --bg:#0b1020; --panel:#121a33; --muted:#7f8db3; --txt:#e8eeff; --accent:#5ee1a1; --danger:#ff6b6b; --warn:#ffd166;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+    header{
+      position:sticky;top:0;z-index:1000;background:linear-gradient(180deg,rgba(10,16,36,0.9),rgba(10,16,36,0.6));
+      backdrop-filter: blur(8px);border-bottom:1px solid rgba(94,225,161,0.2)
+    }
+    .wrap{max-width:1600px;margin:0 auto;padding:10px 16px}
+    .bar{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .timer{
+      display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px;
+      padding:10px 14px;border:1px solid rgba(94,225,161,0.4);border-radius:14px;background:rgba(18,26,51,0.6)
+    }
+    .timer[data-state="warning"]{border-color:var(--warn);color:var(--warn)}
+    .timer[data-state="over"]{border-color:var(--danger);color:var(--danger)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{
+      background:var(--panel);border:1px solid rgba(127,141,179,0.35);color:var(--txt);
+      padding:8px 12px;border-radius:12px;cursor:pointer;font-weight:600
+    }
+    button:hover{border-color:var(--accent);box-shadow:0 0 0 2px rgba(94,225,161,0.15) inset}
+    button.primary{background:rgba(94,225,161,0.15);border-color:rgba(94,225,161,0.8)}
+    button.danger{background:rgba(255,107,107,0.12);border-color:rgba(255,107,107,0.6)}
+    .layout{display:grid;grid-template-columns: 1fr 420px; gap:14px; padding:14px}
+    .panel{background:var(--panel);border:1px solid rgba(127,141,179,0.25);border-radius:16px;overflow:hidden}
+    .panel h2{margin:0;padding:14px 16px;border-bottom:1px solid rgba(127,141,179,0.25);font-size:18px;color:#dfe6ff}
+    .pdfbox{height:calc(100vh - 120px)}
+    .pdfbox iframe,.pdfbox embed,.pdfbox object{width:100%;height:100%;border:0;background:#fff}
+    .sheet{padding:14px;max-height:calc(100vh - 120px);overflow:auto}
+    .section{margin-bottom:14px}
+    .section h3{margin:0 0 10px 0;font-size:16px;color:#cbd7ff}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{border:1px solid rgba(127,141,179,0.25);padding:8px;text-align:center}
+    th{background:rgba(127,141,179,0.15)}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px}
+    .row{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center}
+    .row textarea{width:100%;min-height:76px;resize:vertical;background:#0e1530;color:var(--txt);border:1px solid rgba(127,141,179,0.35);border-radius:10px;padding:8px}
+    .row input{width:100%;padding:8px;border-radius:10px;border:1px solid rgba(127,141,179,0.35);background:#0e1530;color:var(--txt)}
+    .muted{color:var(--muted);font-size:13px}
+    .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;background:rgba(127,141,179,0.12);border:1px dashed rgba(127,141,179,0.35);padding:6px 8px;border-radius:999px}
+    .footer{padding:10px 14px;border-top:1px dashed rgba(127,141,179,0.35);display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+    .stat{display:flex;gap:8px;align-items:center}
+    .kpi{font-weight:700;color:var(--accent)}
+    @media (max-width:1100px){ .layout{grid-template-columns:1fr} .pdfbox{height:60vh} .sheet{max-height:unset} }
+    a.link{color:#8be7ff;text-decoration:underline}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="timer" id="timer" aria-live="polite" title="Đếm ngược 80 phút">
+          ⏳ <span id="time">80:00</span>
+        </div>
+        <span class="badge">Trang này lưu tiến độ &amp; đáp án trong trình duyệt (localStorage).</span>
+      </div>
+      <div class="controls">
+        <button class="primary" id="btnStart">Bắt đầu</button>
+        <button id="btnPause">Tạm dừng</button>
+        <button id="btnReset" class="danger" title="Đặt lại thời gian &amp; giữ đáp án">Đặt lại đồng hồ</button>
+        <button id="btnSubmit" class="primary">Nộp bài</button>
+        <button id="btnExport">Tải đáp án (.csv)</button>
+        <button id="btnClear" class="danger" title="Xoá toàn bộ đáp án &amp; thời gian">Xoá sạch</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Đề gốc (PDF)</h2>
+      <div class="pdfbox" id="pdfbox">
+        <object id="pdfObj" data="de-cuoi-hoc-ki-1-toan-6-nam-2024-2025-truong-ththcs-thsp-nghe-an.pdf#view=FitH" type="application/pdf">
+          <p style="padding:16px;color:#222;background:#fff">
+            Trình duyệt không mở được PDF. <a href="de-cuoi-hoc-ki-1-toan-6-nam-2024-2025-truong-ththcs-thsp-nghe-an.pdf" target="_blank">Bấm để tải/xem đề</a>.
+          </p>
+        </object>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Phiếu trả lời</h2>
+      <div class="sheet">
+        <div class="section">
+          <div class="grid">
+            <div class="row"><label for="student">Họ tên</label><input id="student" placeholder="Nhập họ tên" /></div>
+            <div class="row"><label for="class">Lớp</label><input id="class" placeholder="VD: 6A1" /></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>A. Trắc nghiệm (12 câu)</h3>
+          <table>
+            <thead><tr><th>Câu</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead>
+            <tbody id="mcBody"></tbody>
+          </table>
+          <p class="muted">Chọn duy nhất một đáp án mỗi câu.</p>
+        </div>
+
+        <div class="section">
+          <h3>B. Tự luận</h3>
+          <div class="grid" id="essayGrid"></div>
+          <p class="muted">Gợi ý: Nhập theo cấu trúc a), b), c) ... nếu cần.</p>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="stat">⏱️ Trạng thái: <strong id="status" style="margin-left:6px">Chưa bắt đầu</strong></div>
+        <div class="stat">Đã chọn <span class="kpi" id="answeredCount">0</span>/12 câu trắc nghiệm</div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const TOTAL_SECONDS_DEFAULT = 80 * 60;
+    const MC_COUNT = 12;
+    const ESSAY_COUNT = 5;
+    const STORAGE_KEY = "thi_toan6_vinh_thsp_ga";
+    const PDF_FILE = "de-cuoi-hoc-ki-1-toan-6-nam-2024-2025-truong-ththcs-thsp-nghe-an.pdf";
+
+    let timerId = null;
+    let state = loadState() || {
+      remaining: TOTAL_SECONDS_DEFAULT,
+      running: false,
+      startedAt: null,
+      submittedAt: null,
+      answers: { student:"", class:"", mc: {}, essay: {} }
+    };
+
+    const $ = s => document.querySelector(s);
+    const timerEl = $("#timer");
+    const timeEl = $("#time");
+    const statusEl = $("#status");
+    const mcBody = $("#mcBody");
+    const essayGrid = $("#essayGrid");
+    const answeredCountEl = $("#answeredCount");
+    const pdfObj = $("#pdfObj");
+
+    pdfObj.setAttribute("data", PDF_FILE + "#view=FitH");
+
+    function buildMC(){
+      let html = "";
+      for(let i=1;i<=MC_COUNT;i++){
+        html += `<tr data-q="${i}"><td><strong>${i}</strong></td>`;
+        for(const opt of ["A","B","C","D"]){
+          const name = `mc_${i}`;
+          const id = `${name}_${opt}`;
+          html += `<td><input type="radio" name="${name}" id="${id}" value="${opt}"></td>`;
+        }
+        html += `</tr>`;
+      }
+      mcBody.innerHTML = html;
+      for(let i=1;i<=MC_COUNT;i++){
+        const chosen = state.answers.mc[i] || null;
+        if(chosen){
+          const sel = document.querySelector(`input[name="mc_${i}"][value="${chosen}"]`);
+          if(sel) sel.checked = true;
+        }
+      }
+      mcBody.addEventListener("change", (e)=>{
+        if(e.target && e.target.name && e.target.name.startsWith("mc_")){
+          const idx = parseInt(e.target.name.split("_")[1],10);
+          state.answers.mc[idx] = e.target.value;
+          saveState();
+          updateCounts();
+        }
+      });
+      updateCounts();
+    }
+
+    function buildEssay(){
+      let html = "";
+      for(let i=1;i<=ESSAY_COUNT;i++){
+        const key = `essay_${i}`;
+        const val = state.answers.essay[i] || "";
+        html += `<div class="row"><label for="${key}">Câu ${i}</label><textarea id="${key}" placeholder="Nhập bài làm cho Câu ${i}...">${escapeHTML(val)}</textarea></div>`;
+      }
+      essayGrid.innerHTML = html;
+      for(let i=1;i<=ESSAY_COUNT;i++){
+        const key = `essay_${i}`;
+        const ta = document.getElementById(key);
+        ta.addEventListener("input", ()=>{
+          state.answers.essay[i] = ta.value;
+          saveState();
+        });
+      }
+    }
+
+    function restoreMeta(){
+      const student = document.getElementById("student");
+      const klass = document.getElementById("class");
+      student.value = state.answers.student || "";
+      klass.value = state.answers.class || "";
+      student.addEventListener("input", ()=>{ state.answers.student = student.value; saveState(); });
+      klass.addEventListener("input", ()=>{ state.answers.class = klass.value; saveState(); });
+    }
+
+    function formatTime(sec){
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    }
+    function tick(){
+      if(!state.running) return;
+      state.remaining = Math.max(0, state.remaining - 1);
+      renderTime();
+      if(state.remaining <= 0){
+        stopTimer();
+        lockInputs(true);
+        statusEl.textContent = "Hết giờ";
+        alert("Hết giờ! Bài làm đã bị khoá.");
+      }
+      saveState();
+    }
+    function startTimer(){
+      if(state.running) return;
+      state.running = true;
+      state.startedAt = state.startedAt || new Date().toISOString();
+      timerId = setInterval(tick, 1000);
+      statusEl.textContent = "Đang làm bài";
+      saveState();
+      renderTime();
+    }
+    function stopTimer(){
+      state.running = false;
+      if(timerId){ clearInterval(timerId); timerId = null; }
+      saveState();
+    }
+    function resetTimer(){
+      stopTimer();
+      state.remaining = TOTAL_SECONDS_DEFAULT;
+      state.startedAt = null;
+      renderTime();
+      statusEl.textContent = "Đã đặt lại đồng hồ";
+      saveState();
+    }
+    function renderTime(){
+      timeEl.textContent = formatTime(state.remaining);
+      if(state.remaining <= 5*60 && state.remaining>0){
+        timerEl.dataset.state = "warning";
+      } else if (state.remaining === 0){
+        timerEl.dataset.state = "over";
+      } else {
+        timerEl.dataset.state = "";
+      }
+    }
+    function lockInputs(lock){
+      document.querySelectorAll("input, textarea, button").forEach(el=>{
+        const id = el.id || "";
+        if(["btnExport","btnClear"].includes(id)) return;
+        if(["student","class"].includes(id) && !lock) return;
+        if(id === "pdfObj") return;
+        if(id === "btnStart" && lock) { el.disabled = true; return; }
+        if(el.tagName === "BUTTON"){
+          if(["btnStart"].includes(id)) { el.disabled = lock; }
+          else if(["btnSubmit","btnPause","btnReset"].includes(id)) { el.disabled = lock; }
+          else { el.disabled = false; }
+        } else {
+          el.disabled = lock;
+        }
+      });
+    }
+
+    function submitPaper(){
+      stopTimer();
+      lockInputs(true);
+      state.submittedAt = new Date().toISOString();
+      statusEl.textContent = "Đã nộp bài";
+      saveState();
+      alert("Đã nộp bài. Bạn vẫn có thể tải đáp án (.csv).");
+    }
+    function updateCounts(){
+      let cnt = 0;
+      for(let i=1;i<=MC_COUNT;i++){ if(state.answers.mc[i]) cnt++; }
+      answeredCountEl.textContent = String(cnt);
+    }
+    function exportCSV(){
+      const rows = [];
+      rows.push(["Họ tên", state.answers.student || ""]);
+      rows.push(["Lớp", state.answers.class || ""]);
+      rows.push(["Bắt đầu", state.startedAt || ""]);
+      rows.push(["Nộp lúc", state.submittedAt || ""]);
+      rows.push([]);
+
+      rows.push(["A. Trắc nghiệm"]);
+      for(let i=1;i<=MC_COUNT;i++){
+        rows.push([`Câu ${i}`, state.answers.mc[i] || ""]);
+      }
+      rows.push([]);
+
+      rows.push(["B. Tự luận"]);
+      for(let i=1;i<=ESSAY_COUNT;i++){
+        let val = (state.answers.essay[i] || "").replace(/\r?\n/g, " ");
+        rows.push([`Câu ${i}`, val]);
+      }
+
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const ts = new Date().toISOString().replace(/[:.]/g,"-");
+      a.download = `dap-an_toan6_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    function clearAll(){
+      if(!confirm("Xoá toàn bộ đáp án và thời gian?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      state = {
+        remaining: TOTAL_SECONDS_DEFAULT,
+        running: false, startedAt: null, submittedAt: null,
+        answers: { student:"", class:"", mc: {}, essay: {} }
+      };
+      buildMC(); buildEssay(); restoreMeta(); renderTime(); lockInputs(false);
+      statusEl.textContent = "Đã xoá sạch";
+    }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      }catch(e){ return null; }
+    }
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    function escapeHTML(str){
+      return String(str).replace(/[&<>"']/g, s => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[s]));
+    }
+
+    (function init(){
+      buildMC(); buildEssay(); restoreMeta(); renderTime();
+      if(state.running){ timerId = setInterval(tick, 1000); statusEl.textContent = "Đang làm bài"; }
+      if(state.submittedAt){ lockInputs(true); statusEl.textContent = "Đã nộp bài"; }
+      document.getElementById("btnStart").onclick = startTimer;
+      document.getElementById("btnPause").onclick = ()=>{ stopTimer(); statusEl.textContent = "Tạm dừng"; };
+      document.getElementById("btnReset").onclick = resetTimer;
+      document.getElementById("btnSubmit").onclick = submitPaper;
+      document.getElementById("btnExport").onclick = exportCSV;
+      document.getElementById("btnClear").onclick = clearAll;
+    })();
+  </script>
+</body>
+</html>
