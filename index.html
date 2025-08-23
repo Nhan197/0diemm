@@ -1,42 +1,41 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đề thi Toán 6 - 80 phút</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <style>
-    :root { --bg:#0b1020; --panel:#121a33; --muted:#7f8db3; --txt:#e8eeff; --accent:#5ee1a1; --danger:#ff6b6b; --warn:#ffd166; }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,Roboto,sans-serif;background:var(--bg);color:var(--txt)}
-    header{position:sticky;top:0;z-index:1000;background:#0b1020cc;backdrop-filter:blur(6px);padding:8px 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-    .timer{font-weight:700;font-size:20px;padding:6px 12px;border:1px solid var(--accent);border-radius:10px}
-    .timer[data-state=warning]{border-color:var(--warn);color:var(--warn)}
-    .timer[data-state=over]{border-color:var(--danger);color:var(--danger)}
-    button{padding:6px 10px;border-radius:8px;border:1px solid #777;background:var(--panel);color:var(--txt);cursor:pointer}
-    button.primary{border-color:var(--accent);}
-    button.danger{border-color:var(--danger);}
-    .layout{display:grid;grid-template-columns:1fr 380px;gap:12px;padding:12px}
+    body{margin:0;font-family:sans-serif;background:#0b1020;color:#e8eeff}
+    header{position:sticky;top:0;background:#0b1020cc;backdrop-filter:blur(6px);padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;z-index:100}
+    .timer{font-weight:bold;font-size:20px;padding:6px 12px;border:1px solid #5ee1a1;border-radius:8px}
+    .layout{display:grid;grid-template-columns:1fr 380px;gap:10px;padding:10px}
     @media(max-width:900px){.layout{grid-template-columns:1fr}}
-    .panel{background:var(--panel);border-radius:12px;overflow:hidden;border:1px solid #2b355a}
-    .panel h2{margin:0;padding:10px;font-size:16px;border-bottom:1px solid #2b355a;background:#0f1730}
-    .pdfbox{height:80vh}
-    .pdfbox iframe{width:100%;height:100%;border:0;background:#fff}
+    .panel{background:#121a33;border:1px solid #2b355a;border-radius:10px;overflow:hidden}
+    .panel h2{margin:0;padding:8px 10px;font-size:16px;background:#0f1730}
+    canvas{max-width:100%;display:block;margin:auto;background:#fff}
+    .pdf-controls{display:flex;gap:6px;justify-content:center;padding:6px}
+    button{padding:5px 10px;border-radius:6px;border:1px solid #777;background:#1c2440;color:#fff;cursor:pointer}
+    button.primary{border-color:#5ee1a1}
+    button.danger{border-color:#ff6b6b}
     .sheet{padding:10px;overflow:auto;max-height:70vh}
     table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid #2b355a;padding:6px;text-align:center}
+    th,td{border:1px solid #2b355a;padding:4px;text-align:center}
     th{background:#1a2244}
     .row{display:grid;grid-template-columns:80px 1fr;gap:6px;margin-bottom:6px}
-    textarea,input{width:100%;padding:6px;border-radius:6px;border:1px solid #444;background:#0e1530;color:var(--txt)}
-    .footer{padding:6px 10px;border-top:1px solid #2b355a;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
-    .history{padding:10px;font-size:14px;max-height:200px;overflow:auto}
+    textarea,input{width:100%;padding:6px;border-radius:6px;border:1px solid #444;background:#0e1530;color:#e8eeff}
+    .footer{padding:6px 10px;font-size:13px;color:#aaa;border-top:1px solid #2b355a;display:flex;justify-content:space-between}
+    .history{padding:10px;max-height:220px;overflow:auto}
     .history-item{border:1px solid #2b355a;border-radius:6px;padding:6px;margin-bottom:6px;background:#101830}
-    .history-item strong{color:var(--accent)}
+    .history-item button{font-size:12px;margin-left:6px}
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:#000c;display:none;align-items:center;justify-content:center}
+    .modal-content{background:#1c2440;padding:20px;border-radius:10px;max-width:600px;max-height:80vh;overflow:auto;color:#fff}
   </style>
 </head>
 <body>
 <header>
   <div class="timer" id="timer"><span id="time">80:00</span></div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap">
+  <div>
     <button id="btnStart" class="primary">Bắt đầu</button>
     <button id="btnPause">Tạm dừng</button>
     <button id="btnReset">Đặt lại</button>
@@ -48,8 +47,13 @@
 
 <main class="layout">
   <section class="panel">
-    <h2>Đề gốc (PDF)</h2>
-    <div class="pdfbox"><iframe src="de-cuoi-hoc-ki-1-toan-6-nam-2024-2025-truong-ththcs-thsp-nghe-an.pdf#view=fitH"></iframe></div>
+    <h2>Đề PDF</h2>
+    <div class="pdf-controls">
+      <button id="prev">Trang trước</button>
+      <span id="page_num">1</span>/<span id="page_count">?</span>
+      <button id="next">Trang sau</button>
+    </div>
+    <canvas id="the-canvas"></canvas>
   </section>
 
   <aside class="panel">
@@ -57,59 +61,63 @@
     <div class="sheet">
       <div class="row"><label>Họ tên</label><input id="student"></div>
       <div class="row"><label>Lớp</label><input id="class"></div>
-
-      <h3>Trắc nghiệm (12 câu)</h3>
+      <h3>Trắc nghiệm</h3>
       <table><thead><tr><th>Câu</th><th>A</th><th>B</th><th>C</th><th>D</th></tr></thead><tbody id="mcBody"></tbody></table>
-
       <h3>Tự luận</h3>
       <div id="essayGrid"></div>
     </div>
-    <div class="footer"><span id="status">Chưa bắt đầu</span><span>Đã chọn <span id="answeredCount">0</span>/12</span></div>
+    <div class="footer"><span id="status">Chưa bắt đầu</span><span><span id="answeredCount">0</span>/12</span></div>
   </aside>
 
   <aside class="panel">
-    <h2>Lịch sử làm bài</h2>
+    <h2>Lịch sử</h2>
     <div class="history" id="history"></div>
   </aside>
 </main>
 
+<div class="modal" id="modal"><div class="modal-content" id="modalContent"></div></div>
+
 <script>
-const TOTAL_SECONDS = 80*60, MC_COUNT=12, ESSAY_COUNT=5;
-const KEY="thi_toan6_state", KEY_HIS="thi_toan6_history";
-let timer=null,state=load(KEY)||{remaining:TOTAL_SECONDS,running:false,answers:{student:"",class:"",mc:{},essay:{}}};
-
-function $(id){return document.getElementById(id)}
-function format(sec){let m=Math.floor(sec/60),s=sec%60;return m.toString().padStart(2,"0")+":"+s.toString().padStart(2,"0")}
-function renderTime(){ $("time").textContent=format(state.remaining); $("timer").dataset.state= state.remaining==0?"over":(state.remaining<=300?"warning":"") }
-function tick(){ if(!state.running) return; state.remaining=Math.max(0,state.remaining-1); renderTime(); if(state.remaining==0){stop();lock(true);$("status").textContent="Hết giờ"} save(KEY,state)}
-function start(){ if(state.running) return; state.running=true; timer=setInterval(tick,1000); $("status").textContent="Đang làm"; save(KEY,state)}
-function stop(){state.running=false;if(timer)clearInterval(timer);timer=null;save(KEY,state)}
-function reset(){stop();state.remaining=TOTAL_SECONDS;renderTime();$("status").textContent="Đặt lại";save(KEY,state)}
+// timer state
+const TOTAL=80*60,MC=12,ESSAY=5,KEY="thi_toan6_state",KH="thi_toan6_history";
+let st=load(KEY)||{remain:TOTAL,running:false,answers:{student:"",class:"",mc:{},essay:{}}},t=null;
+function $(i){return document.getElementById(i)}
+function fmt(s){let m=Math.floor(s/60),ss=s%60;return m.toString().padStart(2,"0")+":"+ss.toString().padStart(2,"0")}
+function render(){ $("time").textContent=fmt(st.remain) }
+function tick(){if(!st.running)return;st.remain=Math.max(0,st.remain-1);render();if(st.remain==0){stop();lock(true);$("status").textContent="Hết giờ"}save(KEY,st)}
+function start(){if(st.running)return;st.running=true;t=setInterval(tick,1000);$("status").textContent="Đang làm";save(KEY,st)}
+function stop(){st.running=false;if(t)clearInterval(t);t=null;save(KEY,st)}
+function reset(){stop();st.remain=TOTAL;render();$("status").textContent="Đặt lại";save(KEY,st)}
 function lock(x){document.querySelectorAll("input,textarea").forEach(e=>e.disabled=x)}
-function updateCount(){let c=0;for(let i=1;i<=MC_COUNT;i++)if(state.answers.mc[i])c++;$("answeredCount").textContent=c}
-
-function build(){ 
- let tb="";for(let i=1;i<=MC_COUNT;i++){tb+="<tr><td>"+i+"</td>";["A","B","C","D"].forEach(o=>{tb+=`<td><input type=radio name=mc_${i} value=${o}></td>`});tb+="</tr>"} $("mcBody").innerHTML=tb;
- for(let i=1;i<=MC_COUNT;i++){if(state.answers.mc[i]){document.querySelector(`input[name=mc_${i}][value=${state.answers.mc[i]}]`).checked=true}}
- document.querySelectorAll("#mcBody input").forEach(e=>e.onchange=()=>{let n=e.name.split("_")[1];state.answers.mc[n]=e.value;save(KEY,state);updateCount()});
- let es="";for(let i=1;i<=ESSAY_COUNT;i++){es+=`<div class=row><label>Câu ${i}</label><textarea id=essay_${i}></textarea></div>`} $("essayGrid").innerHTML=es;
- for(let i=1;i<=ESSAY_COUNT;i++){let t=$("essay_"+i);t.value=state.answers.essay[i]||"";t.oninput=()=>{state.answers.essay[i]=t.value;save(KEY,state)}}
- $("student").value=state.answers.student||""; $("class").value=state.answers.class||"";
- $("student").oninput=()=>{state.answers.student=$("student").value;save(KEY,state)}; $("class").oninput=()=>{state.answers.class=$("class").value;save(KEY,state)}
- updateCount()
-}
-
-function submit(){stop();lock(true);$("status").textContent="Đã nộp"; 
- let history=load(KEY_HIS)||[]; history.unshift({time:new Date().toLocaleString(),ans:state.answers}); save(KEY_HIS,history); renderHistory(); alert("Đã nộp bài, xem lịch sử bên phải")}
-function renderHistory(){ let h=load(KEY_HIS)||[]; $("history").innerHTML=h.map((x,i)=>`<div class=history-item><div><strong>Lần ${h.length-i}</strong> (${x.time})</div><div>${x.ans.student||"?"} - ${x.ans.class||""}</div></div>`).join("") }
-
-function exportCSV(){let rows=[["Họ tên",state.answers.student],["Lớp",state.answers.class]];for(let i=1;i<=MC_COUNT;i++)rows.push([`Câu ${i}`,state.answers.mc[i]||""]);for(let i=1;i<=ESSAY_COUNT;i++)rows.push([`Tự luận ${i}`,state.answers.essay[i]||""]);let csv=rows.map(r=>r.join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv]));a.download="dap-an.csv";a.click()}
-function clearAll(){localStorage.removeItem(KEY);localStorage.removeItem(KEY_HIS);location.reload()}
+function build(){
+ let tb="";for(let i=1;i<=MC;i++){tb+="<tr><td>"+i+"</td>";["A","B","C","D"].forEach(o=>{tb+=`<td><input type=radio name=mc_${i} value=${o}></td>`});tb+="</tr>"}$("mcBody").innerHTML=tb;
+ for(let i=1;i<=MC;i++){if(st.answers.mc[i]){document.querySelector(`input[name=mc_${i}][value=${st.answers.mc[i]}]`).checked=true}}
+ document.querySelectorAll("#mcBody input").forEach(e=>e.onchange=()=>{let n=e.name.split("_")[1];st.answers.mc[n]=e.value;save(KEY,st);count()});
+ let es="";for(let i=1;i<=ESSAY;i++){es+=`<div class=row><label>Câu ${i}</label><textarea id=essay_${i}></textarea></div>`}$("essayGrid").innerHTML=es;
+ for(let i=1;i<=ESSAY;i++){let ta=$("essay_"+i);ta.value=st.answers.essay[i]||"";ta.oninput=()=>{st.answers.essay[i]=ta.value;save(KEY,st)}}
+ $("student").value=st.answers.student;$("class").value=st.answers.class;
+ $("student").oninput=()=>{st.answers.student=$("student").value;save(KEY,st)};$("class").oninput=()=>{st.answers.class=$("class").value;save(KEY,st)};count()}
+function count(){let c=0;for(let i=1;i<=MC;i++)if(st.answers.mc[i])c++;$("answeredCount").textContent=c}
+function submit(){stop();lock(true);$("status").textContent="Đã nộp";let h=load(KH)||[];h.unshift({time:new Date().toLocaleString(),ans:st.answers});save(KH,h);hist();alert("Đã nộp");}
+function hist(){let h=load(KH)||[];$("history").innerHTML=h.map((x,i)=>`<div class=history-item><div><b>Lần ${h.length-i}</b> (${x.time}) <button onclick="view(${i})">Xem lại</button></div><div>${x.ans.student||"?"} - ${x.ans.class||""}</div></div>`).join("")}
+function view(i){let h=load(KH)||[];let x=h[i];if(!x)return;let html=`<h3>Kết quả ${x.time}</h3><p>${x.ans.student} - ${x.ans.class}</p><h4>Trắc nghiệm</h4><ul>`;for(let k=1;k<=MC;k++)html+=`<li>Câu ${k}: ${x.ans.mc[k]||""}</li>`;html+="</ul><h4>Tự luận</h4>";for(let k=1;k<=ESSAY;k++)html+=`<p><b>Câu ${k}:</b> ${x.ans.essay[k]||""}</p>`;$("modalContent").innerHTML=html;$("modal").style.display="flex"}
+$("modal").onclick=()=>{$("modal").style.display="none"}
+function exportCSV(){let rows=[["Họ tên",st.answers.student],["Lớp",st.answers.class]];for(let i=1;i<=MC;i++)rows.push([`Câu ${i}`,st.answers.mc[i]||""]);for(let i=1;i<=ESSAY;i++)rows.push([`Tự luận ${i}`,st.answers.essay[i]||""]);let csv=rows.map(r=>r.join(",")).join("\n");let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv]));a.download="dap-an.csv";a.click()}
+function clearAll(){localStorage.removeItem(KEY);localStorage.removeItem(KH);location.reload()}
 function load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
-
-build();renderTime();if(state.running)timer=setInterval(tick,1000);renderHistory();
+// init
+build();render();if(st.running)t=setInterval(tick,1000);hist();
 $("btnStart").onclick=start;$("btnPause").onclick=()=>{stop();$("status").textContent="Tạm dừng"};$("btnReset").onclick=reset;$("btnSubmit").onclick=submit;$("btnExport").onclick=exportCSV;$("btnClear").onclick=clearAll;
+
+// pdf.js render
+const url='de-cuoi-hoc-ki-1-toan-6-nam-2024-2025-truong-ththcs-thsp-nghe-an.pdf';
+let pdfDoc=null,pageNum=1,pageRendering=false,pageNumPending=null,scale=1.2,canvas=document.getElementById('the-canvas'),ctx=canvas.getContext('2d');
+pdfjsLib.getDocument(url).promise.then(function(pdf){pdfDoc=pdf;document.getElementById('page_count').textContent=pdf.numPages;renderPage(pageNum)});
+function renderPage(num){pageRendering=true;pdfDoc.getPage(num).then(function(page){let viewport=page.getViewport({scale:scale});canvas.height=viewport.height;canvas.width=viewport.width;let renderContext={canvasContext:ctx,viewport:viewport};let renderTask=page.render(renderContext);renderTask.promise.then(function(){pageRendering=false;if(pageNumPending!==null){renderPage(pageNumPending);pageNumPending=null}})});document.getElementById('page_num').textContent=num}
+function queueRenderPage(num){if(pageRendering){pageNumPending=num}else{renderPage(num)}}
+document.getElementById('prev').onclick=function(){if(pageNum<=1)return;pageNum--;queueRenderPage(pageNum)};
+document.getElementById('next').onclick=function(){if(pageNum>=pdfDoc.numPages)return;pageNum++;queueRenderPage(pageNum)};
 </script>
 </body>
 </html>
